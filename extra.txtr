@@ -1,0 +1,5 @@
+      try:
+        await message.channel.send(embed=bed)
+      except:
+        print('no embeds')
+
