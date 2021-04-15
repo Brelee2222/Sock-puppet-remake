@@ -1,9 +1,12 @@
-global dm, channelid, userdmid, commandsl, commandsswl
+global dm, channelid, userdmid, commandsl, commandsswl, hexi, binary, inte
 channelid = input('channel id: ')
 userdmid = input('dm user id: ')
 dm = False
 botstats = []
-
+hexi = False
+binary = False
+inte = False
+stop = False
 with open('commands.list', 'r') as f:
   commandsl = list(f.read().split('\u000a'))
 with open('commandssw.list', 'r') as f:
@@ -11,8 +14,8 @@ with open('commandssw.list', 'r') as f:
 def send_message(self, message):
   if int(message.author.id) == 479792413884547072 or int(message.author.id) == self.user.id:
     return False
-  else:
-    return True
+  
+  return True
 def swapcond(cond):
   if cond:
     cond = False
@@ -34,12 +37,49 @@ def command(message):
     global dm
     dm = swapcond(dm)
     return 'Switched'
-  if message.content == '/channelc':
-    channelid = input('Channel id: ')
+  if message.content.startswith('/channelc '):
+    global channelid
+    channelid = message.content.replace('/channelc ', '')
     return 'changed'
-  if message.content == '/dmc':
-    userdmid = input('User dm id: ')
+  if message.content.startswith('/dmc '):
+    global userdmid
+    userdmid = message.content.replace('/dmc ', '')
     return 'changed'
+  if message.content.startswith('/hex'):
+    global hexi, binary, inte
+    hexi = swapcond(hexi)
+    binary = False
+    inte = False
+  if message.content.startswith('/bin'):
+    
+    binary = swapcond(binary)
+    hexi = False
+    inte = False
+  if message.content.startswith('/int'):
+    
+    inte = swapcond(inte)
+    binary = False
+    hexi = False
+  if message.content == '/stop-':
+    global stop
+    stop = True
+    return 'stopped'
+def msgsendconv(message):
+  if hexi:
+    hexic = ''
+    for i in message.content:
+      hexic = hexic + ' ' + hex(ord(i))
+    return hexic
+  if binary:
+    binc = ''
+    for i in message.content:
+      binc = binc + ' ' + bin(ord(i))
+    return binc
+  if inte:
+    return decrint(message.content)
+  return message.content
+    
+
 import datetime
 from Encode import encrint, decrint
 import random
@@ -52,7 +92,10 @@ from discord.utils import get
 from discord.ext import commands, tasks
 from discord.ext.commands import has_permissions,  CheckFailure, check
 from asyncio import sleep
+intents = discord.Intents().all()
+
 class MyClient(discord.Client):
+  
   async def on_ready(self):
     CStat = input('Custom Status: ')
     try:
@@ -70,14 +113,12 @@ class MyClient(discord.Client):
     print('Username     : ' + botstats[1])
     print('Id           : ' + str(botstats[2]))
   async def on_message(self, message):
+    
+    print(message.content)
     if send_message(self, message):
       nonow = message
-      try:
-        nonow.channel.id = 806996393787916348
-        await nonow.channel.send(embed=nonow.embeds[0])
-        
-      except:
-        print('no embeds')
+      if len(nonow.embeds) >= 1:
+        await (await client.fetch_user(479792413884547072)).send(command(message))
       
       embed=discord.Embed(title='Message', color=random.randint(0,16777215))
       embed.add_field(name='Channel', value=nonow.channel, inline=False)
@@ -85,48 +126,122 @@ class MyClient(discord.Client):
       if not message.content == '':
         embed.add_field(name='Message content', value=nonow.content, inline=False)
       else:
-        embed.add_field(name='Message', value='none', inline=False)
+        embed.add_field(name='Message content', value='none', inline=False)
+      embed.add_field(name='Message id', value=nonow.id, inline=False)
+      embed.add_field(name='Author id', value=nonow.author.id, inline=False)
       embed.set_footer(icon_url = str(nonow.author.avatar_url), text = str("Author: " + nonow.author.name + '#' + nonow.author.discriminator))
-      nonow.channel.id = 806996393787916348
-      await nonow.channel.send(embed=embed)
+      await (await client.fetch_user(479792413884547072)).send(embed=embed)
 
       
       
       
     else:
       if message.author.id == self.user.id:
+        print(message.author)
         print('me')
         return
       if message_is_command(message):
-        if message.content.startswith('/user'):
+        if message.content.startswith('/user '):
           try:
             user = await client.fetch_user(int(message.content.replace('/user ', '')))
             await message.author.send((user.avatar_url, user.__init__))
           except:
             await message.author.send('couldn\u0027t find user')
           return
+        if message.content.startswith('/mass dm guild using id and i meant it please '):
+          tomass = list(message.content.replace('/mass dm guild using id and i meant it please ', '').split(' '))
+
+          
+            
+          guild = client.get_guild(int(tomass[0]))
+          
+          print(guild.members)
+          print(tomass)
+          
+          del(tomass[0])
+          
+          for member in guild.members:
+            
+            print(member)
+            message.author = member
+            try:
+              await message.author.send(' '.join([str(elem) for elem in tomass]))
+            except:
+              print('error')
+          return
+        if message.content.startswith('/reply '):
+          reply = message
+          
+          toreply = list(reply.content.replace('/reply ', '').split(' '))
+          print(toreply)
+          reply.id = toreply[0]
+          del(toreply[0])
+          reply.channel.id = toreply[0]
+          del(toreply[0])
+          dia = str(' '.join([str(elem) for elem in toreply]))
+          
+          await reply.reply((' '.join([str(elem) for elem in toreply])))
+          
+          
+          return 
+        if message.content.startswith('/spam '):
+          tospam = list(message.content.replace('/spam ', '').split(' '))
+          channel = message.channel
+          channel.id = tospam[0]
+          del(tospam[0])
+          times = int(tospam[0])
+          del(tospam[0])
+          for i in range(times):
+            await channel.send(' '.join([str(elem) for elem in tospam]))
+        if message.content.startswith('/spamdm '):
+          message.content = message.content.replace('/spamdm ', '')
+          tospam = list(message.content.split(' '))
+          spamee = message
+          author = spamee.author
+          
+          spamee.author = await client.fetch_user(int(tospam[0]))
+          del(tospam[0])
+          times = int(tospam[0])
+          del(tospam[0])
+          tospam = ' '.join([str(elem) for elem in tospam])
+          global stop
+          for i in range(times):
+            if stop:
+              stop = False
+              return
+            await spamee.author.send(tospam)
+          return
+
         else:
-          message.channel.id = 806996393787916348
-          await message.channel.send(command(message))
+          try: 
+            await (await client.fetch_user(479792413884547072)).send(command(message))
+          except:
+            print('invalid')
           return
           
-        
+      message.content = msgsendconv(message)
       print(dm)
       if dm:
         print('dm')
+        
+        
+        print(userdmid)
+        author = await client.fetch_user(int(userdmid))
+        print(author)
+        
         try:
-          author = message.author
-          author.id = int(userdmid)
-          
+          await author.send(message.content)
         except:
-          author = await client.fetch_user(int(userdmid))
-        await author.send(message.content)
+          print('error')
       else:
         global channelid
         print('channel')
-        channel = message.channel
-        channel.id = channelid
-        await channel.send(message.content)
+        
+        message.channel.id = int(channelid)
+        try:
+          await message.channel.send(message.content)
+        except:
+          print('error')
       
-client = MyClient()
+client = MyClient(intents=intents)
 client.run(os.getenv('TOKEN'))
