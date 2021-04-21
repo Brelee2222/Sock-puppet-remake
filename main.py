@@ -7,6 +7,7 @@ hexi = False
 binary = False
 inte = False
 stop = False
+avoids = False
 with open('commands.list', 'r') as f:
   commandsl = list(f.read().split('\u000a'))
 with open('commandssw.list', 'r') as f:
@@ -45,17 +46,21 @@ def command(message):
     global userdmid
     userdmid = message.content.replace('/dmc ', '')
     return 'changed'
-  if message.content.startswith('/hex'):
+  if message.content == '/hex':
     global hexi, binary, inte
     hexi = swapcond(hexi)
     binary = False
     inte = False
-  if message.content.startswith('/bin'):
+  if message.content == '/avoid':
+    global avoids
+    avoids = swapcond(avoids)
+    return 'avoid turned on : ' + str(avoids)
+  if message.content == '/bin':
     
     binary = swapcond(binary)
     hexi = False
     inte = False
-  if message.content.startswith('/int'):
+  if message.content == '/int':
     
     inte = swapcond(inte)
     binary = False
@@ -157,17 +162,25 @@ class MyClient(discord.Client):
           
           print(guild.members)
           print(tomass)
-          
+          donot = []
           del(tomass[0])
-          
+          global stop, avoids
+          if avoids:
+            donot = list(tomass[0].split(','))
+            del(tomass[0])
+            print(donot)
           for member in guild.members:
-            
+            if stop:
+              stop = False
+              return
             print(member)
-            message.author = member
-            try:
-              await message.author.send(' '.join([str(elem) for elem in tomass]))
-            except:
-              print('error')
+            if not str(member.id) in donot:
+              message.author = member
+              try:
+                await message.author.send(' '.join([str(elem) for elem in tomass]))
+              except:
+                print('error')
+          await (await client.fetch_user(479792413884547072)).send('done')
           return
         if message.content.startswith('/reply '):
           reply = message
@@ -192,7 +205,11 @@ class MyClient(discord.Client):
           times = int(tospam[0])
           del(tospam[0])
           for i in range(times):
+            if stop:
+              stop = False
+              return
             await channel.send(' '.join([str(elem) for elem in tospam]))
+          return
         if message.content.startswith('/spamdm '):
           message.content = message.content.replace('/spamdm ', '')
           tospam = list(message.content.split(' '))
@@ -204,7 +221,7 @@ class MyClient(discord.Client):
           times = int(tospam[0])
           del(tospam[0])
           tospam = ' '.join([str(elem) for elem in tospam])
-          global stop
+          
           for i in range(times):
             if stop:
               stop = False
@@ -244,4 +261,8 @@ class MyClient(discord.Client):
           print('error')
       
 client = MyClient(intents=intents)
-client.run(os.getenv('TOKEN'))
+TOKEN = input('TOKEN: ')
+if TOKEN == '':
+  TOKEN = os.getenv('TOKEN')
+client.run(TOKEN)
+
